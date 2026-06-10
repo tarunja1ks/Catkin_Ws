@@ -1,0 +1,8 @@
+prefix=/Users/tarunjaikumar/catkin_ws/install
+
+Name: myrobot2_gazebo
+Description: Description of myrobot2_gazebo
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
