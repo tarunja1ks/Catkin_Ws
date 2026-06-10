@@ -77,12 +77,12 @@ class EKF:
     def predict(self):
         # updating position estimate using motion model
         v_linear = self.curr_state[3]
-        # v_linear=(self.wheel_velocities[0]+self.wheel_velocities[1])/2
         theta=self.curr_state[2]
-        self.curr_state[2]=np.arctan2(np.sin(self.curr_state[2]),np.cos(self.curr_state[2]))
-        theta_mid=(theta+self.curr_state[2])/2 #calculating the midpoint of heading between movement timesteps
+        theta_new=theta+(v_linear/self.wheel_base)*np.tan(self.steering_angle)*self.dt
+        theta_mid=(theta+theta_new)/2 #calculating the midpoint of heading between movement timesteps    
         self.curr_state[0]+=(v_linear*np.cos(theta_mid))*self.dt
         self.curr_state[1]+=(v_linear*np.sin(theta_mid))*self.dt
+        self.curr_state[2]=np.arctan2(np.sin(theta_new),np.cos(theta_new))
         
         # calculating the jacobians with state respect to state
         A=np.eye(4)
