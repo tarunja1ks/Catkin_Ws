@@ -95,16 +95,12 @@ class EKF:
         #calculating the uncertainity Covariance matrix
         self.P=np.linalg.multi_dot([A,self.P,A.T])+self.Q
         
-        msg = Pose2D(x=self.curr_state[0], y=self.curr_state[1], theta=self.curr_state[2])
-        self.pose_pub.publish(msg)
     
     def update_camera(self,dx,dy,dtheta):
         H=np.diag([1,1,1,0])[:3]
         R=np.diag([0.05**2,0.05**2,0.02**2])
         Z=np.array([self.curr_state[0]+dx,self.curr_state[1]+dy,self.curr_state[2]+dtheta])
         self.update(H,R,Z)
-        msg = Pose2D(x=self.curr_state[0], y=self.curr_state[1], theta=self.curr_state[2])
-        self.pose_pub.publish(msg)
         
     def update_encoder(self):
         v_linear=((self.wheel_velocities[0]+self.wheel_velocities[1])/2)*self.wheel_radius
@@ -112,8 +108,6 @@ class EKF:
         R=np.array([[0.05**2]])
         Z=np.array([v_linear])
         self.update(H,R,Z)
-        msg = Pose2D(x=self.curr_state[0], y=self.curr_state[1], theta=self.curr_state[2])
-        self.pose_pub.publish(msg)
         
     def update(self,H,R,Z):
         # update stuff here
@@ -123,7 +117,9 @@ class EKF:
         self.curr_state=self.curr_state+K@(Z-H@self.curr_state)
         # scaling down the uncertainty Covariance
         self.P=(np.eye(4)-K@H)@self.P
-             
+        
+        msg = Pose2D(x=self.curr_state[0], y=self.curr_state[1], theta=self.curr_state[2])
+        self.pose_pub.publish(msg)
               
        
        
