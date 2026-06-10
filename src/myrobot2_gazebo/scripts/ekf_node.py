@@ -1,7 +1,8 @@
 import rospy
 from std_msgs.msg import String, Float64, Float64MultiArray
 import numpy as np
-from geometry_msgs.msg import Pose2D
+from geometry_msgs.msg import Pose2D,PoseStamped
+from sensor_msgs.msg import PointCloud2
 
 class EKF:
     def __init__(self):
@@ -12,7 +13,8 @@ class EKF:
        rospy.Subscriber("/steering_angle", Float64, self.steering_callback)
        
        #initializing an orbslam d435 subscriber
-       rospy.Subscriber("/orb_slam3/camera_pose", Pose2D, self.wheel_callback)
+       rospy.Subscriber("/orb_slam3/camera_pose", PointCloud2, self.camera_pose_callback)
+       rospy.Subscriber("/orb_slam3/tracked_points",PoseStamped,self.orb_callback)
        
        #publishing robot pose
        self.pose_pub = rospy.Publisher('/ekf_pose', Pose2D, queue_size=1)
@@ -29,8 +31,20 @@ class EKF:
        
        self.timer = rospy.Timer(rospy.Duration(self.dt), self.predict_callback)
        
+       # orb tracking check
+       self.orb_tracking=False
+       
     def predict_callback(self, event):
         self.predict()
+        
+    def orb_callback(self,msg):
+        if(msg.width>0):
+            rospy.loginfo("Orbslam tracking is on")
+            self.orb_tracking=True
+        else:
+            rospy.loginfo("ITS NOT ON")
+            self.orb_tracking=False
+        
        
     def wheel_callback(self,data):
         self.wheel_velocities=np.array(data.data)
