@@ -13,8 +13,8 @@ class EKF:
        rospy.Subscriber("/steering_angle", Float64, self.steering_callback)
        
        #initializing an orbslam d435 subscriber
-       rospy.Subscriber("/orb_slam3/camera_pose", PointCloud2, self.camera_pose_callback)
-       rospy.Subscriber("/orb_slam3/tracked_points",PoseStamped,self.orb_callback)
+       rospy.Subscriber("/orb_slam3/camera_pose", PoseStamped, self.camera_pose_callback)
+       rospy.Subscriber("/orb_slam3/tracked_points",PointCloud2,self.orb_callback)
        
        #publishing robot pose
        self.pose_pub = rospy.Publisher('/ekf_pose', Pose2D, queue_size=1)
@@ -54,6 +54,7 @@ class EKF:
         self.steering_angle=data.data
         
     def camera_pose_callback(self, data):
+        pass
         self.update_camera(data.x, data.y, data.theta)
         
     def predict(self):
