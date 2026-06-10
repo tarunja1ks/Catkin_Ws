@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <launch>
+
+
+
   <param name="/use_sim_time" value="false"/>
 
-  <env name="ROS_IP" value="192.168.1.18"/>
-  <env name="ROS_MASTER_URI" value="http://192.168.1.18:11311"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find myrobot2_gazebo)/worlds/myrobot2.world"/>
