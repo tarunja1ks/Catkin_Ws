@@ -1,5 +1,6 @@
 import rospy
-from std_msgs.msg import String, Float64, Float64MultiArray
+from std_msgs.msg import String, Float64, Float64MultiArray,Int32   
+from tf.transformations import euler_from_quaternion
 import numpy as np
 from geometry_msgs.msg import Pose2D,PoseStamped
 from sensor_msgs.msg import PointCloud2
@@ -14,7 +15,7 @@ class EKF:
        
        #initializing an orbslam d435 subscriber
        rospy.Subscriber("/orb_slam3/camera_pose", PoseStamped, self.camera_pose_callback)
-       rospy.Subscriber("/orb_slam3/tracked_points",PointCloud2,self.orb_callback)
+       rospy.Subscriber("/orb_slam3/tracking_state",Int32,self.orb_callback)
        
        #publishing robot pose
        self.pose_pub = rospy.Publisher('/ekf_pose', Pose2D, queue_size=1)
@@ -33,12 +34,13 @@ class EKF:
        
        # orb tracking check
        self.orb_tracking=False
+       self.last_orb_pose=None
        
     def predict_callback(self, event):
         self.predict()
         
-    def orb_callback(self,msg):
-        if(msg.width>0):
+    def orb_callback(self,data):
+        if(data.data==2):
             rospy.loginfo("Orbslam tracking is on")
             self.orb_tracking=True
         else:
@@ -54,8 +56,23 @@ class EKF:
         self.steering_angle=data.data
         
     def camera_pose_callback(self, data):
-        pass
-        self.update_camera(data.x, data.y, data.theta)
+        if not self.orb_tracking:
+            self.last_orb_pose=None
+            return
+        
+        q=data.pose.orientation
+        roll,pitch,yaw=euler_from_quaternion([q.x,q.y,q.z,q.w])
+        curr=(data.pose.position.x, data.pose.position.y, yaw)
+        
+        
+        if(self.orb_tracking and self.last_orb_pose is not None):
+            dx=curr[0]-self.last_orb_pose[0]
+            dy=curr[1]-self.last_orb_pose[1]
+            dyaw = np.arctan2(np.sin(curr[2] - self.last_orb_pose[2]),np.cos(curr[2] - self.last_orb_pose[2]))
+            self.update_camera(dx,dy,dyaw)
+        self.last_orb_pose=curr
+
+            
         
     def predict(self):
         # updating position estimate using motion model
@@ -81,10 +98,10 @@ class EKF:
         msg = Pose2D(x=self.curr_state[0], y=self.curr_state[1], theta=self.curr_state[2])
         self.pose_pub.publish(msg)
     
-    def update_camera(self,x,y,theta):
+    def update_camera(self,dx,dy,dtheta):
         H=np.diag([1,1,1,0])[:3]
         R=np.diag([0.05**2,0.05**2,0.02**2])
-        Z=np.array([x,y,theta])
+        Z=np.array([self.curr_state[0]+dx,self.curr_state[1]+dy,self.curr_state[2]+dtheta])
         self.update(H,R,Z)
         msg = Pose2D(x=self.curr_state[0], y=self.curr_state[1], theta=self.curr_state[2])
         self.pose_pub.publish(msg)
